@@ -3,9 +3,9 @@ import { get, put } from "@vercel/blob";
 
 const PATHNAME = "store.json";
 
-if (!process.env.BLOB_READ_WRITE_TOKEN) {
+if (!process.env.BLOB_STORE_ID && !process.env.BLOB_READ_WRITE_TOKEN) {
   console.error(
-    "BLOB_READ_WRITE_TOKEN is missing. Run `vercel env pull .env.local` and try again.",
+    "No Blob credentials found. Run `vercel env pull .env.local` and try again.",
   );
   process.exit(1);
 }

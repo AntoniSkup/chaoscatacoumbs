@@ -39,7 +39,7 @@ Reviews and the "Currently Reading" entry live in a single JSON document.
 
 Locally it is `data/store.json`, seeded automatically on first run. Delete the file to reset back to the seed content.
 
-On Vercel the filesystem is read-only, so the same document is stored in [Vercel Blob](https://vercel.com/docs/vercel-blob) as `store.json`. Create a Blob store with **private** access, connect it to the project, and redeploy — the app picks it up from the environment variables Vercel injects. Deploying without a Blob store connected fails every read and write with a clear error.
+On Vercel the filesystem is read-only, so the same document is stored in [Vercel Blob](https://vercel.com/docs/vercel-blob) as `store.json`. Create a Blob store with **private** access, connect it to the project, and redeploy — the app authenticates with the `BLOB_STORE_ID` and OIDC token Vercel injects. Deploying without a Blob store connected fails every read and write with a clear error.
 
 To copy your local data into the Blob store instead of starting from the seed:
 
