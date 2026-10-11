@@ -7,3 +7,4 @@ export const navLinks = [
 export const publishLink = { label: "Publish", href: "/reviews/new" };
 
 export const navHrefs = [...navLinks, publishLink].map((link) => link.href);
+ 
