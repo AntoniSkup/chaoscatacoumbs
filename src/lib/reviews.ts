@@ -1,3 +1,4 @@
+import { get, put } from "@vercel/blob";
 import { promises as fs } from "fs";
 import path from "path";
 import { CATEGORIES } from "./categories";
@@ -27,8 +28,8 @@ type Store = {
   currentlyReading: CurrentlyReading;
 };
 
-const dataDir = path.join(process.cwd(), "data");
-const storeFile = path.join(dataDir, "store.json");
+const blobPathname = "store.json";
+const localStoreFile = path.join(process.cwd(), "data", "store.json");
 
 const seedStore: Store = {
   currentlyReading: {
@@ -111,20 +112,68 @@ function withCoverIds(store: Store): Store {
   };
 }
 
-async function readStore(): Promise<Store> {
-  await fs.mkdir(dataDir, { recursive: true });
+// Serverless filesystems are read-only, so deployments keep the store in Vercel
+// Blob. Local development without Blob credentials uses data/store.json.
+function storageMode(): "blob" | "file" {
+  const hasCredentials = Boolean(
+    process.env.BLOB_READ_WRITE_TOKEN ||
+      (process.env.VERCEL_OIDC_TOKEN && process.env.BLOB_STORE_ID),
+  );
+  if (hasCredentials) return "blob";
+
+  if (process.env.VERCEL) {
+    throw new Error(
+      "No Vercel Blob store is connected to this deployment. Create one in the Vercel dashboard, connect it to this project, and redeploy.",
+    );
+  }
+
+  return "file";
+}
+
+async function readBlobStore(): Promise<Store | null> {
+  const result = await get(blobPathname, {
+    access: "private",
+    useCache: false,
+  });
+  if (!result?.stream) return null;
+  return JSON.parse(await new Response(result.stream).text()) as Store;
+}
+
+async function readLocalStore(): Promise<Store | null> {
   try {
-    const raw = await fs.readFile(storeFile, "utf8");
-    return withCoverIds(JSON.parse(raw) as Store);
-  } catch {
-    await writeStore(seedStore);
-    return seedStore;
+    return JSON.parse(await fs.readFile(localStoreFile, "utf8")) as Store;
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
+    throw error;
   }
 }
 
+async function readStore(): Promise<Store> {
+  const stored =
+    storageMode() === "blob" ? await readBlobStore() : await readLocalStore();
+
+  if (!stored) {
+    await writeStore(seedStore);
+    return seedStore;
+  }
+
+  return withCoverIds(stored);
+}
+
 async function writeStore(store: Store): Promise<void> {
-  await fs.mkdir(dataDir, { recursive: true });
-  await fs.writeFile(storeFile, JSON.stringify(store, null, 2), "utf8");
+  const serialized = JSON.stringify(store, null, 2);
+
+  if (storageMode() === "blob") {
+    await put(blobPathname, serialized, {
+      access: "private",
+      contentType: "application/json",
+      allowOverwrite: true,
+    });
+    return;
+  }
+
+  await fs.mkdir(path.dirname(localStoreFile), { recursive: true });
+  await fs.writeFile(localStoreFile, serialized, "utf8");
 }
 
 function byNewest(a: Review, b: Review): number {

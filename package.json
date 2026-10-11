@@ -6,9 +6,11 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "seed:blob": "node --env-file-if-exists=.env.local --env-file-if-exists=.env scripts/seed-blob.mjs"
   },
   "dependencies": {
+    "@vercel/blob": "^2.8.1",
     "next": "16.4.0",
     "react": "19.3.0",
     "react-dom": "19.3.0"
