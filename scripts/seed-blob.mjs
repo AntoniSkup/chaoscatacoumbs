@@ -5,7 +5,7 @@ const PATHNAME = "store.json";
 
 if (!process.env.BLOB_STORE_ID && !process.env.BLOB_READ_WRITE_TOKEN) {
   console.error(
-    "No Blob credentials found. Run `vercel env pull .env.local` and try again.",
+    "No Blob credentials found. Run `vercel env pull .env.blob` and try again.",
   );
   process.exit(1);
 }

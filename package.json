@@ -7,7 +7,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "seed:blob": "node --env-file-if-exists=.env.local --env-file-if-exists=.env scripts/seed-blob.mjs"
+    "seed:blob": "node --env-file-if-exists=.env.blob scripts/seed-blob.mjs",
+    "auth:hash": "node --env-file-if-exists=.env.local scripts/hash-password.mts",
+    "auth:revoke": "node scripts/revoke-sessions.mts",
+    "auth:revoke:blob": "node --env-file-if-exists=.env.blob scripts/revoke-sessions.mts --blob"
   },
   "dependencies": {
     "@vercel/blob": "^2.8.1",

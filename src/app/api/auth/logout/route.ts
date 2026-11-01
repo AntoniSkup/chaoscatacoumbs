@@ -1,9 +1,7 @@
-import { SESSION_COOKIE } from "@/lib/auth";
-import { cookies } from "next/headers";
+import { logout } from "@/lib/auth";
 import { NextResponse } from "next/server";
 
 export async function POST() {
-  const jar = await cookies();
-  jar.delete(SESSION_COOKIE);
+  await logout();
   return NextResponse.json({ ok: true });
 }

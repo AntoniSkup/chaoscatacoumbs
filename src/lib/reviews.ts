@@ -113,22 +113,20 @@ function withCoverIds(store: Store): Store {
 }
 
 // Serverless filesystems are read-only, so deployments keep the store in Vercel
-// Blob. Local development without Blob credentials uses data/store.json.
+// Blob. Local development always uses data/store.json, so pulled credentials
+// can't point `next dev` at production data.
 function storageMode(): "blob" | "file" {
+  if (!process.env.VERCEL) return "file";
+
   // BLOB_STORE_ID means an OIDC-connected store; the SDK pairs it with the
   // VERCEL_OIDC_TOKEN it manages itself.
-  const connected = Boolean(
-    process.env.BLOB_STORE_ID || process.env.BLOB_READ_WRITE_TOKEN,
-  );
-  if (connected) return "blob";
-
-  if (process.env.VERCEL) {
+  if (!process.env.BLOB_STORE_ID && !process.env.BLOB_READ_WRITE_TOKEN) {
     throw new Error(
-      "No Vercel Blob store is connected to this deployment. Create one in the Vercel dashboard, connect it to this project, and redeploy.",
+      "No Vercel Blob store is connected to this deployment. Connect one from the store's Projects tab and redeploy.",
     );
   }
 
-  return "file";
+  return "blob";
 }
 
 async function readBlobStore(): Promise<Store | null> {

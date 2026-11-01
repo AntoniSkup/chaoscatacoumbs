@@ -36,7 +36,11 @@ export function LoginForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="mx-auto w-full max-w-md space-y-5">
+    <form
+      method="post"
+      onSubmit={handleSubmit}
+      className="mx-auto w-full max-w-md space-y-5"
+    >
       <label className="block space-y-2">
         <span className="font-serif text-[13px] tracking-[0.22em] text-rose uppercase">
           Username
@@ -47,7 +51,6 @@ export function LoginForm() {
           required
           autoComplete="username"
           className="w-full border border-line bg-bg/80 px-4 py-3 text-ink outline-none transition-colors focus:border-rose"
-          placeholder="chaos"
         />
       </label>
 
