@@ -11,6 +11,14 @@ import { getReview } from "@/lib/reviews";
 
 export const dynamic = "force-dynamic";
 
+function formatDate(value: string) {
+  return new Date(value).toLocaleDateString("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
 export default async function ReviewPage({
   params,
 }: PageProps<"/reviews/[id]">) {
@@ -89,12 +97,10 @@ export default async function ReviewPage({
               </p>
 
               <p className="mt-8 font-serif text-[12px] tracking-[0.16em] text-ink-muted uppercase">
-                Published{" "}
-                {new Date(review.createdAt).toLocaleDateString("en-US", {
-                  month: "long",
-                  day: "numeric",
-                  year: "numeric",
-                })}
+                Published {formatDate(review.createdAt)}
+                {review.updatedAt
+                  ? ` · Updated ${formatDate(review.updatedAt)}`
+                  : ""}
               </p>
             </div>
           </div>

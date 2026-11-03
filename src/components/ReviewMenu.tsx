@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
@@ -122,14 +123,23 @@ export function ReviewMenu({ reviewId, redirectTo }: ReviewMenuProps) {
               </div>
             </div>
           ) : (
-            <button
-              type="button"
-              role="menuitem"
-              onClick={() => setConfirming(true)}
-              className="block w-full px-3 py-2 text-left font-serif text-[12px] tracking-[0.16em] text-ink-muted uppercase transition-colors hover:bg-rose/10 hover:text-rose"
-            >
-              Remove review
-            </button>
+            <>
+              <Link
+                href={`/reviews/${reviewId}/edit`}
+                role="menuitem"
+                className="block w-full px-3 py-2 text-left font-serif text-[12px] tracking-[0.16em] text-ink-muted uppercase transition-colors hover:bg-rose/10 hover:text-rose"
+              >
+                Edit review
+              </Link>
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => setConfirming(true)}
+                className="block w-full px-3 py-2 text-left font-serif text-[12px] tracking-[0.16em] text-ink-muted uppercase transition-colors hover:bg-rose/10 hover:text-rose"
+              >
+                Remove review
+              </button>
+            </>
           )}
 
           {error ? (

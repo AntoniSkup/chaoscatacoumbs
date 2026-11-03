@@ -1,5 +1,10 @@
 import { isAuthenticated } from "@/lib/auth";
-import { deleteReview, getReview } from "@/lib/reviews";
+import {
+  deleteReview,
+  getReview,
+  parseReviewDraft,
+  updateReview,
+} from "@/lib/reviews";
 import { NextResponse } from "next/server";
 
 export async function GET(
@@ -8,6 +13,29 @@ export async function GET(
 ) {
   const { id } = await params;
   const review = await getReview(id);
+
+  if (!review) {
+    return NextResponse.json({ error: "Review not found." }, { status: 404 });
+  }
+
+  return NextResponse.json(review);
+}
+
+export async function PATCH(
+  request: Request,
+  { params }: RouteContext<"/api/reviews/[id]">,
+) {
+  if (!(await isAuthenticated())) {
+    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+  }
+
+  const parsed = parseReviewDraft(await request.json());
+  if (!parsed.ok) {
+    return NextResponse.json({ error: parsed.error }, { status: 400 });
+  }
+
+  const { id } = await params;
+  const review = await updateReview(id, parsed.draft);
 
   if (!review) {
     return NextResponse.json({ error: "Review not found." }, { status: 404 });

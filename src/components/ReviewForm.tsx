@@ -5,20 +5,26 @@ import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { CATEGORIES } from "@/lib/categories";
 import type { BookSuggestion } from "@/lib/openlibrary";
+import type { Review } from "@/lib/reviews";
 import { BookCover } from "./BookCover";
 import { BookSearchField } from "./BookSearchField";
 import { StarRatingInput } from "./StarRatingInput";
 
-export function ReviewForm() {
+type ReviewFormProps = {
+  review?: Review;
+};
+
+export function ReviewForm({ review }: ReviewFormProps) {
   const router = useRouter();
-  const [rating, setRating] = useState(6);
-  const [selected, setSelected] = useState<string[]>([]);
+  const editing = review !== undefined;
+  const [rating, setRating] = useState(review?.rating ?? 6);
+  const [selected, setSelected] = useState<string[]>(review?.categories ?? []);
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
   const [book, setBook] = useState({
-    title: "",
-    author: "",
-    coverId: null as number | null,
+    title: review?.title ?? "",
+    author: review?.author ?? "",
+    coverId: review?.coverId ?? null,
     year: null as number | null,
   });
 
@@ -51,30 +57,36 @@ export function ReviewForm() {
     setError("");
 
     const formData = new FormData(event.currentTarget);
-    const response = await fetch("/api/reviews", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        title: book.title,
-        author: book.author,
-        coverId: book.coverId,
-        text: formData.get("text"),
-        categories: selected,
-        rating,
-      }),
-    });
+    const response = await fetch(
+      editing ? `/api/reviews/${review.id}` : "/api/reviews",
+      {
+        method: editing ? "PATCH" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: book.title,
+          author: book.author,
+          coverId: book.coverId,
+          text: formData.get("text"),
+          categories: selected,
+          rating,
+        }),
+      },
+    );
 
     setPending(false);
 
     if (!response.ok) {
       const data = (await response.json()) as { error?: string };
-      setError(data.error ?? "Could not publish review.");
+      setError(
+        data.error ??
+          (editing ? "Could not save review." : "Could not publish review."),
+      );
       return;
     }
 
-    const review = (await response.json()) as { id: string };
+    const saved = (await response.json()) as { id: string };
     router.refresh();
-    router.push(`/reviews/${review.id}`);
+    router.push(`/reviews/${saved.id}`);
   }
 
   return (
@@ -90,7 +102,11 @@ export function ReviewForm() {
           size="lg"
         />
         <p className="text-center text-[12px] tracking-[0.14em] text-ink-muted uppercase md:text-left">
-          {book.year ? `First published ${book.year}` : "Cover appears on pick"}
+          {book.year
+            ? `First published ${book.year}`
+            : book.coverId
+              ? "Cover from Open Library"
+              : "Cover appears on pick"}
         </p>
       </div>
 
@@ -101,7 +117,14 @@ export function ReviewForm() {
           </span>
           <BookSearchField
             value={book.title}
-            onChange={(title) => setBook((current) => ({ ...current, title }))}
+            onChange={(title) =>
+              setBook((current) => ({
+                ...current,
+                title,
+                coverId: title === current.title ? current.coverId : null,
+                year: title === current.title ? current.year : null,
+              }))
+            }
             onSelect={handleSelect}
             label="Book title"
             placeholder="Start typing a title..."
@@ -166,6 +189,7 @@ export function ReviewForm() {
             name="text"
             required
             rows={8}
+            defaultValue={review?.text ?? ""}
             className="w-full resize-y border border-line bg-bg/60 px-4 py-3 text-ink outline-none transition-colors focus:border-rose"
             placeholder="What haunted you? What stayed with you after the last page?"
           />
@@ -179,7 +203,7 @@ export function ReviewForm() {
 
         <div className="flex items-center justify-between gap-4 border-t border-line pt-5">
           <Link
-            href="/"
+            href={editing ? `/reviews/${review.id}` : "/"}
             className="font-serif text-[12px] tracking-[0.18em] text-ink-muted uppercase hover:text-rose"
           >
             Cancel
@@ -189,7 +213,13 @@ export function ReviewForm() {
             disabled={pending}
             className="border border-rose bg-rose/15 px-6 py-3 font-serif text-[12px] tracking-[0.26em] text-rose-soft uppercase transition-colors hover:bg-rose/25 disabled:opacity-50"
           >
-            {pending ? "Publishing..." : "Publish Review →"}
+            {pending
+              ? editing
+                ? "Saving..."
+                : "Publishing..."
+              : editing
+                ? "Save changes"
+                : "Publish Review →"}
           </button>
         </div>
       </div>

@@ -12,8 +12,14 @@ export type Review = {
   text: string;
   favorite: boolean;
   createdAt: string;
+  updatedAt?: string;
   coverId: number | null;
 };
+
+export type ReviewDraft = Pick<
+  Review,
+  "title" | "author" | "categories" | "rating" | "text" | "coverId"
+>;
 
 export type CurrentlyReading = {
   title: string;
@@ -225,8 +231,63 @@ export async function getCategoryCounts(): Promise<
   }));
 }
 
+export function parseReviewDraft(
+  input: unknown,
+): { ok: true; draft: ReviewDraft } | { ok: false; error: string } {
+  const body =
+    input && typeof input === "object"
+      ? (input as {
+          title?: unknown;
+          author?: unknown;
+          categories?: unknown;
+          text?: unknown;
+          rating?: unknown;
+          coverId?: unknown;
+        })
+      : {};
+  const title = typeof body.title === "string" ? body.title.trim() : "";
+  const author = typeof body.author === "string" ? body.author.trim() : "";
+  const text = typeof body.text === "string" ? body.text.trim() : "";
+  const rating = Number(body.rating);
+  const coverId = Number(body.coverId);
+  const categories = Array.isArray(body.categories)
+    ? body.categories.filter(
+        (category): category is string =>
+          typeof category === "string" &&
+          (CATEGORIES as readonly string[]).includes(category),
+      )
+    : [];
+
+  if (!title || !author || !text) {
+    return {
+      ok: false,
+      error: "Title, author and review text are required.",
+    };
+  }
+
+  if (categories.length === 0) {
+    return { ok: false, error: "Pick at least one valid category." };
+  }
+
+  if (!Number.isInteger(rating) || rating < 1 || rating > 6) {
+    return { ok: false, error: "Rating must be an integer from 1 to 6." };
+  }
+
+  return {
+    ok: true,
+    draft: {
+      title,
+      author,
+      text,
+      categories,
+      rating,
+      coverId: Number.isInteger(coverId) && coverId > 0 ? coverId : null,
+    },
+  };
+}
+
 export async function addReview(
-  input: Omit<Review, "id" | "createdAt">,
+  input: Omit<Review, "id" | "createdAt" | "updatedAt">,
 ): Promise<Review> {
   const store = await readStore();
   const review: Review = {
@@ -235,6 +296,25 @@ export async function addReview(
     createdAt: new Date().toISOString(),
   };
   store.reviews.unshift(review);
+  await writeStore(store);
+  return review;
+}
+
+export async function updateReview(
+  id: string,
+  input: ReviewDraft,
+): Promise<Review | undefined> {
+  const store = await readStore();
+  const review = store.reviews.find((item) => item.id === id);
+  if (!review) return undefined;
+
+  review.title = input.title;
+  review.author = input.author;
+  review.categories = input.categories;
+  review.rating = input.rating;
+  review.text = input.text;
+  review.coverId = input.coverId;
+  review.updatedAt = new Date().toISOString();
   await writeStore(store);
   return review;
 }

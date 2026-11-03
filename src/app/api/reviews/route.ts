@@ -1,6 +1,5 @@
 import { isAuthenticated } from "@/lib/auth";
-import { CATEGORIES } from "@/lib/categories";
-import { addReview, getReviews } from "@/lib/reviews";
+import { addReview, getReviews, parseReviewDraft } from "@/lib/reviews";
 import { NextResponse } from "next/server";
 
 export async function GET(request: Request) {
@@ -17,53 +16,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   }
 
-  const body = (await request.json()) as {
-    title?: string;
-    author?: string;
-    categories?: string[];
-    text?: string;
-    rating?: number;
-    coverId?: number | null;
-  };
-
-  const title = body.title?.trim() ?? "";
-  const author = body.author?.trim() ?? "";
-  const text = body.text?.trim() ?? "";
-  const rating = Number(body.rating);
-  const coverId = Number(body.coverId);
-  const categories = (body.categories ?? []).filter((category) =>
-    (CATEGORIES as readonly string[]).includes(category),
-  );
-
-  if (!title || !author || !text) {
-    return NextResponse.json(
-      { error: "Title, author and review text are required." },
-      { status: 400 },
-    );
-  }
-
-  if (categories.length === 0) {
-    return NextResponse.json(
-      { error: "Pick at least one valid category." },
-      { status: 400 },
-    );
-  }
-
-  if (!Number.isInteger(rating) || rating < 1 || rating > 6) {
-    return NextResponse.json(
-      { error: "Rating must be an integer from 1 to 6." },
-      { status: 400 },
-    );
+  const parsed = parseReviewDraft(await request.json());
+  if (!parsed.ok) {
+    return NextResponse.json({ error: parsed.error }, { status: 400 });
   }
 
   const review = await addReview({
-    title,
-    author,
-    text,
-    categories,
-    rating,
+    ...parsed.draft,
     favorite: false,
-    coverId: Number.isInteger(coverId) && coverId > 0 ? coverId : null,
   });
 
   return NextResponse.json(review, { status: 201 });
